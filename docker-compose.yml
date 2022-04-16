@@ -1,0 +1,53 @@
+version: "3.8"
+networks:
+  leo-network:
+services:
+  database:
+    image: mariadb
+    container_name: leo-docker_database
+    volumes:
+      - ../leo-database:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      leo-network:
+        aliases:
+          - sql-server
+    env_file: 
+      - ./common.env
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD" ]
+      timeout: 10s
+      retries: 5
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: leo-docker_phpmyadmin
+    ports:
+      - "9010:80"
+    networks:
+      - leo-network
+    depends_on:
+      - database
+    env_file:
+      - ./common.env
+  leo: 
+    build: ../leo
+    container_name: leo-docker_leo
+    environment:
+      - DATABASE_URL=mysql://root:admin@database:3306/leo
+    volumes:
+      - ../leo/:/usr/src/app/:rw
+      - /usr/src/app/node_modules
+      - /usr/src/app/.next
+    depends_on:
+      - database
+    ports:
+      - 3001:3001
+    networks:
+      leo-network:
+        aliases:
+          - leogrambert.local
+
+volumes:
+  redis-data:
+    
